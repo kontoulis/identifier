@@ -3,13 +3,19 @@
 /**
  * This file is part of ramsey/identifier
  *
- * ramsey/identifier is open source software: you can distribute
- * it and/or modify it under the terms of the MIT License
- * (the "License"). You may not use this file except in
- * compliance with the License.
+ * ramsey/identifier is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser
+ * General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
  *
- * @copyright Copyright (c) Ben Ramsey <ben@benramsey.com>
- * @license https://opensource.org/licenses/MIT MIT License
+ * ramsey/identifier is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with ramsey/identifier. If not, see
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @copyright Copyright (c) Ben Ramsey <ben@ramsey.dev> and Contributors
+ * @license https://opensource.org/license/lgpl-3-0/ GNU Lesser General Public License version 3 or later
  */
 
 declare(strict_types=1);
@@ -22,9 +28,9 @@ use Ramsey\Identifier\Exception\CannotDetermineVersion;
 use Ramsey\Identifier\Exception\InvalidArgument;
 use Ramsey\Identifier\NodeBasedUuid;
 use Ramsey\Identifier\TimeBasedUuid;
-use Ramsey\Identifier\Uuid\Utility\Format;
-use Ramsey\Identifier\Uuid\Utility\Mask;
-use Ramsey\Identifier\Uuid\Utility\Standard;
+use Ramsey\Identifier\Uuid\Internal\Format;
+use Ramsey\Identifier\Uuid\Internal\Mask;
+use Ramsey\Identifier\Uuid\Internal\Standard;
 
 use function assert;
 use function preg_match;
@@ -33,17 +39,15 @@ use function strlen;
 use function strspn;
 
 /**
- * An untyped UUID is one in which the version and variant bits have not yet
- * been evaluated. This does NOT mean the UUID is invalid! Rather, this is a
- * performance feature.
+ * An untyped UUID is one in which the version and variant bits have not yet been evaluated. This does not mean the UUID
+ * is invalid; rather, this is a performance feature.
  *
- * When creating a UUID instance from string, bytes, hexadecimal, or integer, it
- * is more performant to defer checking the version and variant bits until
- * later, i.e., when calling {@see self::getVersion()}, {@see self::getVariant()},
+ * When creating a UUID instance from string, bytes, hexadecimal, or integer, it is more performant to defer checking
+ * the version and variant bits until later, i.e., when calling {@see self::getVersion()}, {@see self::getVariant()},
  * {@see self::getDateTime()}, and {@see self::getNode()}.
  *
- * To access a typed version (e.g., {@see UuidV1}, {@see UuidV4}, etc.), call
- * {@see self::toTypedUuid()} on any UntypedUuid instance.
+ * To access a typed version (e.g., {@see UuidV4}, {@see UuidV7}, etc.), call {@see self::toTypedUuid()} on any
+ * UntypedUuid instance.
  */
 final class UntypedUuid implements NodeBasedUuid, TimeBasedUuid
 {
@@ -54,9 +58,11 @@ final class UntypedUuid implements NodeBasedUuid, TimeBasedUuid
     private ?Variant $variant = null;
     private ?Version $version = null;
 
-    private MaxUuid | MicrosoftGuid | NilUuid | NonstandardUuid | UuidV1 | UuidV2 | UuidV3 | UuidV4 | UuidV5 | UuidV6 | UuidV7 | UuidV8 | null $typedUuid = null; // phpcs:ignore
+    private MaxUuid | MicrosoftGuid | NilUuid | NonstandardUuid | UuidV1 | UuidV2 | UuidV3 | UuidV4 | UuidV5 | UuidV6 | UuidV7 | UuidV8 | null $typedUuid = null; // phpcs:ignore Generic.Files.LineLength
 
     /**
+     * @param non-empty-string $uuid A representation of the UUID as a string with dashes, hexadecimal, or byte string.
+     *
      * @throws InvalidArgument
      */
     public function __construct(private readonly string $uuid)
@@ -80,7 +86,7 @@ final class UntypedUuid implements NodeBasedUuid, TimeBasedUuid
         }
 
         throw new BadMethodCall(sprintf(
-            'Cannot call getDateTime() on untyped UUID "%s"',
+            'Cannot call getDateTime() on untyped UUID "%s"; it is not a time-based UUID',
             $this->getFormat(Format::String),
         ));
     }
@@ -97,7 +103,7 @@ final class UntypedUuid implements NodeBasedUuid, TimeBasedUuid
         }
 
         throw new BadMethodCall(sprintf(
-            'Cannot call getNode() on untyped UUID "%s"',
+            'Cannot call getNode() on untyped UUID "%s"; it is not a node-based UUID',
             $this->getFormat(Format::String),
         ));
     }
@@ -140,8 +146,7 @@ final class UntypedUuid implements NodeBasedUuid, TimeBasedUuid
     /**
      * Returns a typed version of this UUID
      */
-    // phpcs:ignore
-    public function toTypedUuid(): MaxUuid | MicrosoftGuid | NilUuid | NonstandardUuid | UuidV1 | UuidV2 | UuidV3 | UuidV4 | UuidV5 | UuidV6 | UuidV7 | UuidV8
+    public function toTypedUuid(): MaxUuid | MicrosoftGuid | NilUuid | NonstandardUuid | UuidV1 | UuidV2 | UuidV3 | UuidV4 | UuidV5 | UuidV6 | UuidV7 | UuidV8 // phpcs:ignore Generic.Files.LineLength
     {
         if ($this->typedUuid === null) {
             try {
@@ -182,7 +187,7 @@ final class UntypedUuid implements NodeBasedUuid, TimeBasedUuid
     private function isValid(string $uuid, ?Format $format): bool
     {
         return match ($format) {
-            Format::Bytes => true,
+            Format::Bytes => strlen($uuid) === 16,
             Format::Hex => strspn($uuid, Mask::HEX) === 32,
             Format::String => preg_match(self::VALID_UUID, $uuid) === 1,
             default => false,

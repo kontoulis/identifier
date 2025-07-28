@@ -3,13 +3,19 @@
 /**
  * This file is part of ramsey/identifier
  *
- * ramsey/identifier is open source software: you can distribute
- * it and/or modify it under the terms of the MIT License
- * (the "License"). You may not use this file except in
- * compliance with the License.
+ * ramsey/identifier is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser
+ * General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
  *
- * @copyright Copyright (c) Ben Ramsey <ben@benramsey.com>
- * @license https://opensource.org/licenses/MIT MIT License
+ * ramsey/identifier is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with ramsey/identifier. If not, see
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @copyright Copyright (c) Ben Ramsey <ben@ramsey.dev> and Contributors
+ * @license https://opensource.org/license/lgpl-3-0/ GNU Lesser General Public License version 3 or later
  */
 
 declare(strict_types=1);
@@ -19,16 +25,16 @@ namespace Ramsey\Identifier\Uuid;
 use DateTimeInterface;
 use Psr\Clock\ClockInterface as Clock;
 use Ramsey\Identifier\Exception\InvalidArgument;
-use Ramsey\Identifier\Service\Clock\Sequence;
-use Ramsey\Identifier\Service\Clock\StatefulSequence;
+use Ramsey\Identifier\Service\Clock\ClockSequence;
+use Ramsey\Identifier\Service\Clock\RandomClockSequence;
 use Ramsey\Identifier\Service\Clock\SystemClock;
 use Ramsey\Identifier\Service\Nic\Nic;
 use Ramsey\Identifier\Service\Nic\RandomNic;
 use Ramsey\Identifier\Service\Nic\StaticNic;
 use Ramsey\Identifier\TimeBasedUuidFactory;
-use Ramsey\Identifier\Uuid\Utility\Binary;
-use Ramsey\Identifier\Uuid\Utility\StandardFactory;
-use Ramsey\Identifier\Uuid\Utility\Time;
+use Ramsey\Identifier\Uuid\Internal\Binary;
+use Ramsey\Identifier\Uuid\Internal\StandardFactory;
+use Ramsey\Identifier\Uuid\Internal\Time;
 
 use function bin2hex;
 use function hex2bin;
@@ -37,7 +43,7 @@ use function sprintf;
 use function substr;
 
 /**
- * A factory for creating version 6, reordered time UUIDs
+ * A factory for creating version 6, reordered Gregorian time UUIDs.
  */
 final class UuidV6Factory implements TimeBasedUuidFactory
 {
@@ -47,33 +53,26 @@ final class UuidV6Factory implements TimeBasedUuidFactory
     private readonly Time $time;
 
     /**
-     * Constructs a factory for creating version 6, reordered time UUIDs
-     *
-     * @param Clock $clock A clock used to provide a date-time instance;
-     *     defaults to {@see SystemClock}
-     * @param Nic $nic A NIC that provides the system MAC address value;
-     *     defaults to {@see RandomNic}
-     * @param Sequence $sequence A sequence that provides a clock sequence value
-     *     to prevent collisions; defaults to {@see StatefulSequence}
+     * @param Clock $clock A clock used to provide a date-time instance; defaults to {@see SystemClock}.
+     * @param Nic $nic A NIC that provides the system MAC address value; defaults to {@see RandomNic}.
+     * @param ClockSequence $sequence A sequence that provides a clock sequence value to prevent collisions; defaults to {@see RandomClockSequence}.
      */
     public function __construct(
         private readonly Clock $clock = new SystemClock(),
         private readonly Nic $nic = new RandomNic(),
-        private readonly Sequence $sequence = new StatefulSequence(),
+        private readonly ClockSequence $sequence = new RandomClockSequence(),
     ) {
         $this->binary = new Binary();
         $this->time = new Time();
     }
 
     /**
-     * @param int<0, max> | non-empty-string | null $node A 48-bit integer or hexadecimal
-     *     string representing the hardware address of the machine where this
-     *     identifier was generated
-     * @param int<0, 16383> | null $clockSequence A 14-bit number used to help
-     *     avoid duplicates that could arise when the clock is set backwards in
-     *     time or if the node ID changes
-     * @param DateTimeInterface | null $dateTime A date-time to use when
-     *     creating the identifier
+     * @param int<0, 281474976710655> | non-empty-string | null $node A 48-bit integer or hexadecimal string
+     *     representing the hardware address of the machine where this identifier was generated.
+     * @param int | null $clockSequence A number used to help avoid duplicates that could arise when the clock is set
+     *     backwards in time or the node ID changes; we take the modulo of this integer divided by 16,384, giving it an
+     *     effective range of 0-16383 (i.e., 14 bits).
+     * @param DateTimeInterface | null $dateTime A date-time to use when creating the identifier.
      *
      * @throws InvalidArgument
      */
@@ -84,7 +83,9 @@ final class UuidV6Factory implements TimeBasedUuidFactory
     ): UuidV6 {
         $node = $node === null ? $this->nic->address() : (new StaticNic($node))->address();
         $dateTime = $dateTime ?? $this->clock->now();
-        $clockSequence = ($clockSequence ?? $this->sequence->value($node, $dateTime)) % 16384;
+
+        // Use modular arithmetic to roll over the sequence value at mod 0x4000 (16384).
+        $clockSequence = ($clockSequence ?? $this->sequence->next($node, $dateTime)) % 0x4000;
 
         $timeBytes = $this->time->getTimeBytesForGregorianEpoch($dateTime);
         $timeHex = bin2hex($timeBytes);

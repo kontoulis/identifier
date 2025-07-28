@@ -8,7 +8,7 @@ use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Identifier\Exception\InvalidArgument;
 use Ramsey\Identifier\Service\Clock\FrozenClock;
-use Ramsey\Identifier\Service\Clock\FrozenSequence;
+use Ramsey\Identifier\Service\Clock\FrozenClockSequence;
 use Ramsey\Identifier\Snowflake\TwitterSnowflakeFactory;
 use Ramsey\Test\Identifier\TestCase;
 
@@ -28,7 +28,7 @@ class TwitterSnowflakeFactoryTest extends TestCase
         $factory = new TwitterSnowflakeFactory(
             0,
             new FrozenClock(new DateTimeImmutable('2010-11-04 01:42:54.657')),
-            new FrozenSequence(0),
+            new FrozenClockSequence(0),
         );
 
         $snowflake = $factory->create();
@@ -42,7 +42,7 @@ class TwitterSnowflakeFactoryTest extends TestCase
     public function testCreateFromDateTime(): void
     {
         $dateTime = new DateTimeImmutable('2022-09-25 17:32:12.345678');
-        $factory = new TwitterSnowflakeFactory(512, sequence: new FrozenSequence(1));
+        $factory = new TwitterSnowflakeFactory(512, sequence: new FrozenClockSequence(1));
         $snowflake = $factory->createFromDateTime($dateTime);
 
         $this->assertNotSame($dateTime, $snowflake->getDateTime());
@@ -59,9 +59,13 @@ class TwitterSnowflakeFactoryTest extends TestCase
 
     public function testCreateFromBytesWithMaxValue(): void
     {
-        $snowflake = $this->factory->createFromBytes("\xff\xff\xff\xff\xff\xff\xff\xff");
+        $this->expectException(InvalidArgument::class);
+        $this->expectExceptionMessage(
+            'Twitter Snowflakes are limited to a 41-bit timestamp; '
+            . 'the timestamp in "18446744073709551615" is greater than 41-bits',
+        );
 
-        $this->assertSame('18446744073709551615', $snowflake->toString());
+        $this->factory->createFromBytes("\xff\xff\xff\xff\xff\xff\xff\xff");
     }
 
     public function testCreateFromBytesWithPhpIntMaxValue(): void
@@ -81,7 +85,7 @@ class TwitterSnowflakeFactoryTest extends TestCase
     public function testCreateFromBytesThrowsException(): void
     {
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('Identifier must be an 8-byte string');
+        $this->expectExceptionMessage('The identifier must be an 8-byte octet string');
 
         $this->factory->createFromBytes("\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff");
     }
@@ -95,9 +99,13 @@ class TwitterSnowflakeFactoryTest extends TestCase
 
     public function testCreateFromHexadecimalWithMaxValue(): void
     {
-        $snowflake = $this->factory->createFromHexadecimal('ffffffffffffffff');
+        $this->expectException(InvalidArgument::class);
+        $this->expectExceptionMessage(
+            'Twitter Snowflakes are limited to a 41-bit timestamp; '
+            . 'the timestamp in "18446744073709551615" is greater than 41-bits',
+        );
 
-        $this->assertSame('18446744073709551615', $snowflake->toString());
+        $this->factory->createFromHexadecimal('ffffffffffffffff');
     }
 
     public function testCreateFromHexadecimalWithPhpIntMaxValue(): void
@@ -117,7 +125,7 @@ class TwitterSnowflakeFactoryTest extends TestCase
     public function testCreateFromHexadecimalThrowsExceptionForWrongLength(): void
     {
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('Identifier must be a 16-character hexadecimal string');
+        $this->expectExceptionMessage('The identifier must be a 16-character hexadecimal string');
 
         $this->factory->createFromHexadecimal('fffffffffffffffffffffffffffffffff');
     }
@@ -125,7 +133,7 @@ class TwitterSnowflakeFactoryTest extends TestCase
     public function testCreateFromHexadecimalThrowsExceptionForNonHexadecimal(): void
     {
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('Identifier must be a 16-character hexadecimal string');
+        $this->expectExceptionMessage('The identifier must be a 16-character hexadecimal string');
 
         $this->factory->createFromHexadecimal('fffffffffffffffg');
     }
@@ -158,7 +166,7 @@ class TwitterSnowflakeFactoryTest extends TestCase
     }
 
     /**
-     * @param int | numeric-string $value
+     * @param int<0, max> | numeric-string $value
      */
     #[DataProvider('createFromIntegerProvider')]
     public function testCreateFromInteger(int | string $value, int | string $expected): void
@@ -174,7 +182,6 @@ class TwitterSnowflakeFactoryTest extends TestCase
     public static function createFromIntegerProvider(): array
     {
         return [
-            ['value' => '18446744073709551615', 'expected' => '18446744073709551615'],
             ['value' => '0', 'expected' => 0],
             ['value' => 0, 'expected' => 0],
             ['value' => 9223372036854775807, 'expected' => 9223372036854775807],
@@ -201,7 +208,8 @@ class TwitterSnowflakeFactoryTest extends TestCase
     {
         $previous = $this->factory->create();
 
-        for ($i = 0; $i < 25; $i++) {
+        // This is 4095 * 2 + 1, so that we loop through the clock sequence twice.
+        for ($i = 0; $i < 8191; $i++) {
             $snowflake = $this->factory->create();
             $this->assertTrue(
                 $snowflake->compareTo($previous) > 0,
@@ -222,7 +230,8 @@ class TwitterSnowflakeFactoryTest extends TestCase
 
         $previous = $this->factory->createFromDateTime($dateTime);
 
-        for ($i = 0; $i < 25; $i++) {
+        // This is 4095 * 2 + 1, so that we loop through the clock sequence twice.
+        for ($i = 0; $i < 8191; $i++) {
             $snowflake = $this->factory->createFromDateTime($dateTime);
             $this->assertTrue(
                 $snowflake->compareTo($previous) > 0,
@@ -250,19 +259,21 @@ class TwitterSnowflakeFactoryTest extends TestCase
 
     public function testCreateFromDateTimeForOutOfBoundsDateTime(): void
     {
-        $factory = new TwitterSnowflakeFactory(0x3ff, sequence: new FrozenSequence(0xfff));
+        $factory = new TwitterSnowflakeFactory(0x3ff, sequence: new FrozenClockSequence(0xfff));
 
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('Invalid Snowflake:');
+        $this->expectExceptionMessage(
+            'Twitter Snowflakes cannot have a date-time greater than 2080-07-10T17:30:30.208Z',
+        );
 
-        $factory->createFromDateTime(new DateTimeImmutable('2150-03-18 09:18:05.761'));
+        $factory->createFromDateTime(new DateTimeImmutable('2080-07-10 17:30:30.209'));
     }
 
     public function testCreateFromDateTimeWithMaxValuesReturnsMaxIdentifier(): void
     {
-        $factory = new TwitterSnowflakeFactory(0x3ff, sequence: new FrozenSequence(0xfff));
-        $snowflake = $factory->createFromDateTime(new DateTimeImmutable('2150-03-18 09:18:05.760'));
+        $factory = new TwitterSnowflakeFactory(0x3ff, sequence: new FrozenClockSequence(0xfff));
+        $snowflake = $factory->createFromDateTime(new DateTimeImmutable('2080-07-10 17:30:30.208'));
 
-        $this->assertSame('18446744073709551615', $snowflake->toInteger());
+        $this->assertSame(0x7fffffffffffffff, $snowflake->toInteger());
     }
 }

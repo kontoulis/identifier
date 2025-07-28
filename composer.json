@@ -1,7 +1,7 @@
 {
     "name": "ramsey/identifier",
     "description": "A PHP library for generating and working with identifiers, including UUIDs, ULIDs, and Snowflakes",
-    "license": "MIT",
+    "license": "LGPL-3.0-or-later",
     "type": "library",
     "keywords": [
         "guid",
@@ -22,8 +22,9 @@
     "require": {
         "php-64bit": "^8.2",
         "brick/math": "^0.12.0",
-        "identifier/identifier": "^0.3.0",
-        "psr/clock": "^1.0"
+        "identifier/identifier": "^0.4.0",
+        "psr/clock": "^1.0",
+        "psr/simple-cache": "^3.0"
     },
     "require-dev": {
         "captainhook/captainhook": "^5.25",
@@ -40,7 +41,6 @@
         "phpstan/phpstan-mockery": "^2.0",
         "phpstan/phpstan-phpunit": "^2.0",
         "phpunit/phpunit": "^11.5 || ^12.0",
-        "psr/simple-cache": "^3.0",
         "ramsey/coding-standard": "^2.3",
         "ramsey/composer-repl": "^1.5",
         "ramsey/conventional-commits": "^1.6",
@@ -105,10 +105,7 @@
         "dev:test:bench": "phpbench run --ansi --progress=dots --report=aggregate",
         "dev:test:bench:ci": "phpbench run --ansi --progress=none --report=ci --output=artifact-tab --output=artifact-html",
         "dev:test:bench:html": "phpbench run --ansi --progress=dots --report=ci --output=artifact-html",
-        "dev:test:coverage:ci": [
-            "Composer\\Config::disableProcessTimeout",
-            "@php -d 'xdebug.mode=coverage' vendor/bin/phpunit --colors=always --coverage-text --coverage-clover build/coverage/clover.xml --coverage-cobertura build/coverage/cobertura.xml --coverage-crap4j build/coverage/crap4j.xml --coverage-xml build/coverage/coverage-xml --log-junit build/junit.xml"
-        ],
+        "dev:test:coverage:ci": "@php -d 'xdebug.mode=coverage' vendor/bin/phpunit --colors=always --coverage-text --coverage-clover build/coverage/clover.xml --coverage-cobertura build/coverage/cobertura.xml --coverage-crap4j build/coverage/crap4j.xml --coverage-xml build/coverage/coverage-xml --log-junit build/junit.xml",
         "dev:test:coverage:html": "@php -d 'xdebug.mode=coverage' vendor/bin/phpunit --colors=always --coverage-html build/coverage/coverage-html/",
         "dev:test:unit": "phpunit --colors=always",
         "test": "@dev:test"

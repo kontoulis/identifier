@@ -3,13 +3,19 @@
 /**
  * This file is part of ramsey/identifier
  *
- * ramsey/identifier is open source software: you can distribute
- * it and/or modify it under the terms of the MIT License
- * (the "License"). You may not use this file except in
- * compliance with the License.
+ * ramsey/identifier is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser
+ * General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
  *
- * @copyright Copyright (c) Ben Ramsey <ben@benramsey.com>
- * @license https://opensource.org/licenses/MIT MIT License
+ * ramsey/identifier is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with ramsey/identifier. If not, see
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @copyright Copyright (c) Ben Ramsey <ben@ramsey.dev> and Contributors
+ * @license https://opensource.org/license/lgpl-3-0/ GNU Lesser General Public License version 3 or later
  */
 
 declare(strict_types=1);
@@ -17,14 +23,14 @@ declare(strict_types=1);
 namespace Ramsey\Identifier\Uuid;
 
 use Ramsey\Identifier\Exception\InvalidArgument;
-use Ramsey\Identifier\Uuid\Utility\Binary;
-use Ramsey\Identifier\Uuid\Utility\StandardFactory;
+use Ramsey\Identifier\Uuid\Internal\Binary;
+use Ramsey\Identifier\Uuid\Internal\StandardFactory;
 use Ramsey\Identifier\UuidFactory as UuidFactoryInterface;
 
 use function strlen;
 
 /**
- * A factory for creating version 8, custom UUIDs
+ * A factory for creating version 8, custom format UUIDs.
  */
 final class UuidV8Factory implements UuidFactoryInterface
 {
@@ -38,28 +44,21 @@ final class UuidV8Factory implements UuidFactoryInterface
     }
 
     /**
-     * Creates a new instance of an identifier
+     * Creates a new instance of an identifier.
      *
-     * The bytes provided may contain any value according to your application's
-     * needs. Be aware, however, that other applications may not understand the
-     * semantics of the value.
+     * The bytes provided may contain any value according to your application's needs. Be aware, however, that other
+     * applications may not understand the format and meaning of the value.
      *
-     * @param string | null $bytes A 16-byte octet string. This is an open blob
-     *     of data that you may fill with 128 bits of information. Be aware,
-     *     however, bits 48 through 51 will be replaced with the UUID version
-     *     field, and bits 64 and 65 will be replaced with the UUID variant. You
-     *     MUST NOT rely on these bits for your application needs.
+     * @param string | null $bytes A 16-byte octet string. This is an open blob of data that you may fill with 128 bits
+     *     of information. Be aware, however, bits 48 through 51 will be replaced with the UUID version field, and bits
+     *     64 and 65 will be replaced with the UUID variant. You MUST NOT rely on these bits for your application needs.
      *
-     * @throws InvalidArgument if $bytes is null or is not a 16-byte octet string
+     * @throws InvalidArgument if `$bytes` is null or is not a 16-byte octet string.
      */
     public function create(?string $bytes = null): UuidV8
     {
-        if ($bytes === null) {
-            throw new InvalidArgument('$bytes cannot be null when creating version 8 UUIDs');
-        }
-
-        if (strlen($bytes) !== 16) {
-            throw new InvalidArgument('$bytes must be a 16-byte octet string');
+        if ($bytes === null || strlen($bytes) !== 16) {
+            throw new InvalidArgument('To create a version 8 UUID, the bytes must be a 16-byte octet string');
         }
 
         $bytes = $this->binary->applyVersionAndVariant($bytes, Version::Custom);

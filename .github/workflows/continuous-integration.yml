@@ -73,9 +73,7 @@ jobs:
     strategy:
       matrix:
         os:
-          #- "macos-latest"
           - "ubuntu-latest"
-          #- "windows-latest"
 
     steps:
       - name: "Checkout repository"
@@ -95,6 +93,13 @@ jobs:
 
       - name: "Publish coverage report to Codecov"
         uses: "codecov/codecov-action@v5"
+
+      - name: "Upload test results to Codecov"
+        if: ${{ !cancelled() }}
+        uses: "codecov/test-results-action@v1"
+        with:
+          disable_search: true
+          file: "./build/junit.xml"
 
   #code-coverage-freebsd:
   #  name: "Code coverage (freebsd)"
@@ -151,7 +156,7 @@ jobs:
         run: "git config --global safe.directory '*'"
 
       - name: "Checkout repository"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@v4"
 
       - name: "Install PHP"
         uses: "shivammathur/setup-php@v2"
@@ -161,7 +166,7 @@ jobs:
           ini-values: "memory_limit=-1"
 
       - name: "Install dependencies (Composer)"
-        uses: "ramsey/composer-install@v2"
+        uses: "ramsey/composer-install@v3"
 
       - name: "Run benchmark (PHPBench)"
         run: |
@@ -187,16 +192,15 @@ jobs:
           - "8.3"
           - "8.4"
         os:
-          #- "macos-latest"
           - "ubuntu-latest"
-          #- "windows-latest"
+          - "ubuntu-24.04-arm"
         composer-deps:
           - "lowest"
           - "highest"
 
     steps:
       - name: "Checkout repository"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@v4"
 
       - name: "Install PHP"
         uses: "shivammathur/setup-php@v2"

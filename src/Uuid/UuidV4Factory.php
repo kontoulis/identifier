@@ -3,13 +3,19 @@
 /**
  * This file is part of ramsey/identifier
  *
- * ramsey/identifier is open source software: you can distribute
- * it and/or modify it under the terms of the MIT License
- * (the "License"). You may not use this file except in
- * compliance with the License.
+ * ramsey/identifier is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser
+ * General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
  *
- * @copyright Copyright (c) Ben Ramsey <ben@benramsey.com>
- * @license https://opensource.org/licenses/MIT MIT License
+ * ramsey/identifier is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with ramsey/identifier. If not, see
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @copyright Copyright (c) Ben Ramsey <ben@ramsey.dev> and Contributors
+ * @license https://opensource.org/license/lgpl-3-0/ GNU Lesser General Public License version 3 or later
  */
 
 declare(strict_types=1);
@@ -19,12 +25,12 @@ namespace Ramsey\Identifier\Uuid;
 use Ramsey\Identifier\Exception\InvalidArgument;
 use Ramsey\Identifier\Service\BytesGenerator\BytesGenerator;
 use Ramsey\Identifier\Service\BytesGenerator\RandomBytesGenerator;
-use Ramsey\Identifier\Uuid\Utility\Binary;
-use Ramsey\Identifier\Uuid\Utility\StandardFactory;
+use Ramsey\Identifier\Uuid\Internal\Binary;
+use Ramsey\Identifier\Uuid\Internal\StandardFactory;
 use Ramsey\Identifier\UuidFactory as UuidFactoryInterface;
 
 /**
- * A factory for creating version 4, random UUIDs
+ * A factory for creating version 4, random UUIDs.
  */
 final class UuidV4Factory implements UuidFactoryInterface
 {
@@ -33,14 +39,10 @@ final class UuidV4Factory implements UuidFactoryInterface
     private readonly Binary $binary;
 
     /**
-     * Constructs a factory for creating version 4, random UUIDs
-     *
-     * @param BytesGenerator $bytesGenerator A random generator used to
-     *     generate bytes; defaults to {@see RandomBytesGenerator}
+     * @param BytesGenerator $bytesGenerator A random generator used to generate bytes; defaults to {@see RandomBytesGenerator}.
      */
-    public function __construct(
-        private readonly BytesGenerator $bytesGenerator = new RandomBytesGenerator(),
-    ) {
+    public function __construct(private readonly BytesGenerator $bytesGenerator = new RandomBytesGenerator())
+    {
         $this->binary = new Binary();
     }
 

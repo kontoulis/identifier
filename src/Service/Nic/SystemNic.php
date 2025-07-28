@@ -3,13 +3,19 @@
 /**
  * This file is part of ramsey/identifier
  *
- * ramsey/identifier is open source software: you can distribute
- * it and/or modify it under the terms of the MIT License
- * (the "License"). You may not use this file except in
- * compliance with the License.
+ * ramsey/identifier is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser
+ * General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
  *
- * @copyright Copyright (c) Ben Ramsey <ben@benramsey.com>
- * @license https://opensource.org/licenses/MIT MIT License
+ * ramsey/identifier is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with ramsey/identifier. If not, see
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @copyright Copyright (c) Ben Ramsey <ben@ramsey.dev> and Contributors
+ * @license https://opensource.org/license/lgpl-3-0/ GNU Lesser General Public License version 3 or later
  */
 
 declare(strict_types=1);
@@ -30,38 +36,41 @@ use function trim;
 use const PREG_PATTERN_ORDER;
 
 /**
- * A NIC that attempts to retrieve a MAC address from the system
+ * A NIC that attempts to retrieve a MAC address from the system.
  */
 final class SystemNic implements Nic
 {
     /**
-     * Pattern to match addresses in ifconfig and ipconfig output
+     * Pattern to match addresses in ifconfig and ipconfig output.
      */
     private const IFCONFIG_PATTERN = '/[^:]([0-9a-f]{2}([:-])[0-9a-f]{2}(\2[0-9a-f]{2}){4})[^:]/i';
 
     /**
-     * Pattern to match addresses in sysfs stream output
+     * Pattern to match addresses in sysfs stream output.
      */
     private const SYSFS_PATTERN = '/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/i';
 
     /**
-     * Key to use when caching the address value in a PSR-16 cache instance
+     * The cache key is generated from the Adler-32 checksum of this class name.
+     *
+     * ```
+     * hash('adler32', SystemNic::class);
+     * ```
      */
-    private const CACHE_KEY = '__ramsey_id_system_addr';
+    private const CACHE_KEY = '__ramsey_id_34f20f6f';
 
     /**
-     * The system address, stored statically for better performance
+     * The system address, stored statically for better performance.
      *
      * @var non-empty-string | null
      */
     private static ?string $address = null;
 
     /**
-     * @param CacheInterface | null $cache An optional PSR-16 cache instance to
-     *     cache the system address for faster lookups. Be aware that use of a
-     *     centralized cache might have unintended consequences if you wish to
-     *     use machine-specific addresses. If you wish for machine-specific
-     *     addresses, use of a machine-local cache, such as APCu, is preferable.
+     * @param CacheInterface | null $cache An optional PSR-16 cache instance to cache the system address for faster
+     *     lookups. Be aware that use of a centralized cache might have unintended consequences if you wish to use
+     *     machine-specific addresses. If you wish for machine-specific addresses, use of a machine-local cache, such as
+     *     APCu, is preferable.
      */
     public function __construct(
         private readonly ?CacheInterface $cache = null,
@@ -104,7 +113,7 @@ final class SystemNic implements Nic
     }
 
     /**
-     * Returns the system address, if it can find it
+     * Returns the system address if it can find it.
      *
      * @return non-empty-string
      */
@@ -126,7 +135,7 @@ final class SystemNic implements Nic
     }
 
     /**
-     * Returns the MAC address from the first system interface via ifconfig, ipconfig, or netstat
+     * Returns the MAC address from the first system interface via ifconfig, ipconfig, or netstat.
      */
     private function getIfconfig(): string
     {
@@ -150,7 +159,7 @@ final class SystemNic implements Nic
     }
 
     /**
-     * Returns the MAC address from the first system interface via the sysfs interface
+     * Returns the MAC address from the first system interface via the sysfs interface.
      */
     private function getSysfs(): string
     {

@@ -3,13 +3,19 @@
 /**
  * This file is part of ramsey/identifier
  *
- * ramsey/identifier is open source software: you can distribute
- * it and/or modify it under the terms of the MIT License
- * (the "License"). You may not use this file except in
- * compliance with the License.
+ * ramsey/identifier is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser
+ * General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
  *
- * @copyright Copyright (c) Ben Ramsey <ben@benramsey.com>
- * @license https://opensource.org/licenses/MIT MIT License
+ * ramsey/identifier is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with ramsey/identifier. If not, see
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @copyright Copyright (c) Ben Ramsey <ben@ramsey.dev> and Contributors
+ * @license https://opensource.org/license/lgpl-3-0/ GNU Lesser General Public License version 3 or later
  */
 
 declare(strict_types=1);
@@ -23,9 +29,9 @@ use DateTimeInterface;
 use Ramsey\Identifier\Exception\InvalidArgument;
 use Ramsey\Identifier\Service\BytesGenerator\BytesGenerator;
 use Ramsey\Identifier\Service\BytesGenerator\MonotonicBytesGenerator;
-use Ramsey\Identifier\Ulid\Utility\Format;
-use Ramsey\Identifier\Ulid\Utility\Mask;
-use Ramsey\Identifier\Ulid\Utility\Validation;
+use Ramsey\Identifier\Ulid\Internal\Format;
+use Ramsey\Identifier\Ulid\Internal\Mask;
+use Ramsey\Identifier\Ulid\Internal\Validation;
 use Ramsey\Identifier\UlidFactory as UlidFactoryInterface;
 use Ramsey\Identifier\Uuid;
 
@@ -36,26 +42,26 @@ use function sprintf;
 use function str_pad;
 use function strlen;
 use function strspn;
+use function strtr;
 
 use const PHP_INT_MAX;
 use const STR_PAD_LEFT;
 
 /**
- * A factory for creating ULIDs
+ * A factory that generates ULIDs.
+ *
+ * @link https://github.com/ulid/spec ULID specification.
+ * @see Ulid
  */
 final class UlidFactory implements UlidFactoryInterface
 {
     use Validation;
 
     /**
-     * Constructs a factory for creating ULIDs
-     *
-     * @param BytesGenerator $bytesGenerator A bytes generator used to
-     *     generate bytes; defaults to {@see MonotonicBytesGenerator}
+     * @param BytesGenerator $bytesGenerator A generator used to generate bytes; defaults to {@see MonotonicBytesGenerator}.
      */
-    public function __construct(
-        private readonly BytesGenerator $bytesGenerator = new MonotonicBytesGenerator(),
-    ) {
+    public function __construct(private readonly BytesGenerator $bytesGenerator = new MonotonicBytesGenerator())
+    {
     }
 
     /**
@@ -79,11 +85,11 @@ final class UlidFactory implements UlidFactoryInterface
             return new NilUlid();
         }
 
-        if (strlen($identifier) === Format::Bytes->value) {
+        if ($this->isValid($identifier, Format::Bytes)) {
             return new Ulid($identifier);
         }
 
-        throw new InvalidArgument('Identifier must be a 16-byte string');
+        throw new InvalidArgument('The identifier must be a 16-byte octet string');
     }
 
     /**
@@ -116,11 +122,11 @@ final class UlidFactory implements UlidFactoryInterface
             return new NilUlid();
         }
 
-        if (strlen($identifier) === Format::Hex->value && $this->isValid($identifier, Format::Hex)) {
+        if ($this->isValid($identifier, Format::Hex)) {
             return new Ulid($identifier);
         }
 
-        throw new InvalidArgument('Identifier must be a 32-character hexadecimal string');
+        throw new InvalidArgument('The identifier must be a 32-character hexadecimal string');
     }
 
     /**
@@ -154,8 +160,8 @@ final class UlidFactory implements UlidFactoryInterface
 
         try {
             return $this->createFromBytes(str_pad($bytes, 16, "\x00", STR_PAD_LEFT));
-        } catch (InvalidArgument) {
-            throw new InvalidArgument(sprintf('Invalid ULID: %s', $identifier));
+        } catch (InvalidArgument $exception) {
+            throw new InvalidArgument(sprintf('Invalid ULID: %s', $identifier), previous: $exception);
         }
     }
 
@@ -172,24 +178,24 @@ final class UlidFactory implements UlidFactoryInterface
             return new NilUlid();
         }
 
-        if (strlen($identifier) === Format::Ulid->value && $this->isValid($identifier, Format::Ulid)) {
-            return new Ulid($identifier);
+        $identifierEncoded = strtr($identifier, ...self::DECODE_SYMBOLS);
+
+        if ($this->isValid($identifierEncoded, Format::Ulid)) {
+            return new Ulid($identifierEncoded);
         }
 
-        throw new InvalidArgument('Identifier must be a valid ULID string representation');
+        throw new InvalidArgument('The identifier must be a valid ULID string representation');
     }
 
     /**
-     * Returns a ULID created from the value of a UUID
+     * Returns a ULID created from the value of a UUID.
      *
-     * ULIDs are defined as being generated from a timestamp based on a count of
-     * milliseconds since the Unix Epoch. The only type of UUID that is binary
-     * compatible with the ULID specification is version 7. Only version 7 UUIDs
-     * will produce sortable ULIDs with meaningful timestamps.
+     * ULIDs are defined as being generated from a timestamp based on a count of milliseconds since the Unix Epoch. The
+     * only type of UUID that is binary compatible with the ULID specification is version 7. Only version 7 UUIDs will
+     * produce sortable ULIDs with meaningful timestamps.
      *
-     * That said, any type of UUID may be converted to a ULID representation,
-     * though the ULID produced may not be sortable or contain any meaningful
-     * timestamp information.
+     * That said, any type of UUID may be converted to a ULID representation, though the ULID produced may not be
+     * sortable or contain any meaningful timestamp information.
      */
     public function createFromUuid(Uuid $uuid): MaxUlid | NilUlid | Ulid
     {
@@ -197,7 +203,7 @@ final class UlidFactory implements UlidFactoryInterface
     }
 
     /**
-     * Creates a Max ULID with all bits set to one (1)
+     * Creates a Max ULID with all bits set to one (1).
      */
     public function max(): MaxUlid
     {
@@ -205,7 +211,7 @@ final class UlidFactory implements UlidFactoryInterface
     }
 
     /**
-     * Creates a Nil ULID with all bits set to zero (0)
+     * Creates a Nil ULID with all bits set to zero (0).
      */
     public function nil(): NilUlid
     {

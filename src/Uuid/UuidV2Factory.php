@@ -3,13 +3,19 @@
 /**
  * This file is part of ramsey/identifier
  *
- * ramsey/identifier is open source software: you can distribute
- * it and/or modify it under the terms of the MIT License
- * (the "License"). You may not use this file except in
- * compliance with the License.
+ * ramsey/identifier is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser
+ * General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
  *
- * @copyright Copyright (c) Ben Ramsey <ben@benramsey.com>
- * @license https://opensource.org/licenses/MIT MIT License
+ * ramsey/identifier is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with ramsey/identifier. If not, see
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @copyright Copyright (c) Ben Ramsey <ben@ramsey.dev> and Contributors
+ * @license https://opensource.org/license/lgpl-3-0/ GNU Lesser General Public License version 3 or later
  */
 
 declare(strict_types=1);
@@ -20,18 +26,18 @@ use DateTimeInterface;
 use Psr\Clock\ClockInterface as Clock;
 use Ramsey\Identifier\Exception\DceIdentifierNotFound;
 use Ramsey\Identifier\Exception\InvalidArgument;
-use Ramsey\Identifier\Service\Clock\Sequence;
-use Ramsey\Identifier\Service\Clock\StatefulSequence;
+use Ramsey\Identifier\Service\Clock\ClockSequence;
+use Ramsey\Identifier\Service\Clock\RandomClockSequence;
 use Ramsey\Identifier\Service\Clock\SystemClock;
 use Ramsey\Identifier\Service\Dce\Dce;
 use Ramsey\Identifier\Service\Dce\SystemDce;
 use Ramsey\Identifier\Service\Nic\Nic;
+use Ramsey\Identifier\Service\Nic\RandomNic;
 use Ramsey\Identifier\Service\Nic\StaticNic;
-use Ramsey\Identifier\Service\Nic\SystemNic;
 use Ramsey\Identifier\TimeBasedUuidFactory;
-use Ramsey\Identifier\Uuid\Utility\Binary;
-use Ramsey\Identifier\Uuid\Utility\StandardFactory;
-use Ramsey\Identifier\Uuid\Utility\Time;
+use Ramsey\Identifier\Uuid\Internal\Binary;
+use Ramsey\Identifier\Uuid\Internal\StandardFactory;
+use Ramsey\Identifier\Uuid\Internal\Time;
 
 use function hex2bin;
 use function pack;
@@ -39,7 +45,7 @@ use function sprintf;
 use function substr;
 
 /**
- * A factory for creating version 2, DCE Security UUIDs
+ * A factory for creating version 2, DCE Security UUIDs.
  */
 final class UuidV2Factory implements TimeBasedUuidFactory
 {
@@ -49,44 +55,34 @@ final class UuidV2Factory implements TimeBasedUuidFactory
     private readonly Time $time;
 
     /**
-     * Constructs a factory for creating version 2, DCE Security UUIDs
-     *
-     * @param Clock $clock A clock used to provide a date-time instance;
-     *     defaults to {@see SystemClock}
-     * @param Dce $dce A service that provides local identifiers when creating
-     *     version 2 UUIDs; defaults to {@see SystemDce}
-     * @param Nic $nic A NIC that provides the system MAC address value;
-     *     defaults to {@see SystemNic}
-     * @param Sequence $sequence A sequence that provides a clock sequence value
-     *     to prevent collisions; defaults to {@see StatefulSequence}
+     * @param Clock $clock A clock used to provide a date-time instance; defaults to {@see SystemClock}.
+     * @param Dce $dce A service that provides local identifiers when creating version 2 UUIDs; defaults to {@see SystemDce}.
+     * @param Nic $nic A NIC that provides the system MAC address value; defaults to {@see RandomNic}.
+     * @param ClockSequence $sequence A sequence that provides a clock sequence value to prevent collisions; defaults to {@see RandomClockSequence}.
      */
     public function __construct(
         private readonly Clock $clock = new SystemClock(),
         private readonly Dce $dce = new SystemDce(),
-        private readonly Nic $nic = new SystemNic(),
-        private readonly Sequence $sequence = new StatefulSequence(),
+        private readonly Nic $nic = new RandomNic(),
+        private readonly ClockSequence $sequence = new RandomClockSequence(),
     ) {
         $this->binary = new Binary();
         $this->time = new Time();
     }
 
     /**
-     * @param DceDomain $localDomain The local domain to which the local identifier
-     *     belongs; this defaults to "Person," and if $localIdentifier is not
-     *     provided, the factory will attempt to obtain a suitable local ID for
-     *     the domain (e.g., the UID or GID of the user running the script)
-     * @param int<0, max> | null $localIdentifier A local identifier belonging
-     *     to the local domain specified in $localDomain; if no identifier is
-     *     provided, the factory will attempt to obtain a suitable local ID for
-     *     the domain (e.g., the UID or GID of the user running the script)
-     * @param int<0, max> | non-empty-string | null $node A 48-bit integer or hexadecimal
-     *     string representing the hardware address of the machine where this
-     *     identifier was generated
-     * @param int<0, 63> | null $clockSequence A 6-bit number used to help
-     *     avoid duplicates that could arise when the clock is set backwards in
-     *     time or if the node ID changes
-     * @param DateTimeInterface | null $dateTime A date-time to use when
-     *     creating the identifier
+     * @param DceDomain $localDomain The local domain to which the local identifier belongs; this defaults to "Person,"
+     *     and if $localIdentifier is not provided, the factory will attempt to get a suitable local ID for the domain
+     *     (e.g., the UID or GID of the user running the script).
+     * @param int<0, 4294967295> | null $localIdentifier A 32-bit local identifier belonging to the local domain
+     *     specified in `$localDomain`; if no identifier is provided, the factory will attempt to get a suitable local
+     *     ID for the domain (e.g., the UID or GID of the user running the script).
+     * @param Nic | int<0, 281474976710655> | non-empty-string | null $node A 48-bit integer or hexadecimal string
+     *     representing the hardware address of the machine where this identifier was generated.
+     * @param int | null $clockSequence A number used to help avoid duplicates that could arise when the clock is set
+     *     backwards in time or the node ID changes; we take the modulo of this integer divided by 64, giving it an
+     *     effective range of 0-63 (i.e., 6 bits).
+     * @param DateTimeInterface | null $dateTime A date-time to use when creating the identifier.
      *
      * @throws DceIdentifierNotFound
      * @throws InvalidArgument
@@ -94,7 +90,7 @@ final class UuidV2Factory implements TimeBasedUuidFactory
     public function create(
         DceDomain $localDomain = DceDomain::Person,
         ?int $localIdentifier = null,
-        int | string | null $node = null,
+        Nic | int | string | null $node = null,
         ?int $clockSequence = null,
         ?DateTimeInterface $dateTime = null,
     ): UuidV2 {
@@ -104,9 +100,22 @@ final class UuidV2Factory implements TimeBasedUuidFactory
             default => $this->dce->orgId(),
         };
 
-        $node = $node === null ? $this->nic->address() : (new StaticNic($node))->address();
+        if ($localIdentifier < 0 || $localIdentifier > 0xffffffff) {
+            throw new InvalidArgument('The local identifier must be a positive 32-bit integer');
+        }
+
+        if ($node === null) {
+            $node = $this->nic->address();
+        } elseif ($node instanceof Nic) {
+            $node = $node->address();
+        } else {
+            $node = (new StaticNic($node))->address();
+        }
+
         $dateTime = $dateTime ?? $this->clock->now();
-        $clockSequence = ($clockSequence ?? $this->sequence->value($node, $dateTime)) % 16384;
+
+        // Use modular arithmetic to roll over the sequence value at mod 0x40 (64).
+        $clockSequence = ($clockSequence ?? $this->sequence->next($node, $dateTime)) % 0x40;
 
         $timeBytes = $this->time->getTimeBytesForGregorianEpoch($dateTime);
 

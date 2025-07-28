@@ -36,6 +36,9 @@ class NilUlidTest extends TestCase
         $this->nilUlidWithBytes = new Ulid\NilUlid("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
     }
 
+    /**
+     * @param non-empty-string $value
+     */
     #[DataProvider('invalidUlidsProvider')]
     public function testConstructorThrowsExceptionForInvalidUlid(string $value): void
     {
@@ -403,5 +406,12 @@ class NilUlidTest extends TestCase
 
         $this->assertSame($expectedBytes, $uuid->toBytes());
         $this->assertFalse($this->nilUlid->equals($uuid));
+    }
+
+    public function testNilEpochDateTime(): void
+    {
+        $nil = new Ulid\NilUlid();
+
+        $this->assertSame('1970-01-01T00:00:00.000Z', $nil->getDateTime()->format('Y-m-d\TH:i:s.vp'));
     }
 }

@@ -12,7 +12,7 @@ use Ramsey\Test\Identifier\TestCase;
 class StaticNicTest extends TestCase
 {
     /**
-     * @param int<0, max> | non-empty-string $staticAddress
+     * @param int<0, 281474976710655> | non-empty-string $staticAddress
      */
     #[DataProvider('addressProvider')]
     public function testAddress(int | string $staticAddress, string $expected): void
@@ -23,7 +23,7 @@ class StaticNicTest extends TestCase
     }
 
     /**
-     * @return list<array{staticAddress: int<0, max> | non-empty-string, expected: string}>
+     * @return list<array{staticAddress: int<0, 281474976710655> | non-empty-string, expected: string}>
      */
     public static function addressProvider(): array
     {
@@ -135,19 +135,19 @@ class StaticNicTest extends TestCase
     }
 
     /**
-     * @param non-empty-string $value
+     * @param int<0, 281474976710655> | non-empty-string $value
      */
     #[DataProvider('invalidAddressProvider')]
-    public function testGetAddressThrowsException(string $value): void
+    public function testGetAddressThrowsException(int | string $value): void
     {
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('Address must be a 48-bit integer or hexadecimal string');
+        $this->expectExceptionMessage('The NIC address must be a positive 48-bit integer or hexadecimal string');
 
         new StaticNic($value);
     }
 
     /**
-     * @return list<array{value: non-empty-string}>
+     * @return list<array{value: int | string}>
      */
     public static function invalidAddressProvider(): array
     {
@@ -157,6 +157,15 @@ class StaticNicTest extends TestCase
             ],
             [
                 'value' => 'fffffffffffff',
+            ],
+            [
+                'value' => '',
+            ],
+            [
+                'value' => -1,
+            ],
+            [
+                'value' => 0x1000000000000,
             ],
         ];
     }

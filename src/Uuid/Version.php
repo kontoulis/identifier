@@ -3,13 +3,19 @@
 /**
  * This file is part of ramsey/identifier
  *
- * ramsey/identifier is open source software: you can distribute
- * it and/or modify it under the terms of the MIT License
- * (the "License"). You may not use this file except in
- * compliance with the License.
+ * ramsey/identifier is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser
+ * General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
  *
- * @copyright Copyright (c) Ben Ramsey <ben@benramsey.com>
- * @license https://opensource.org/licenses/MIT MIT License
+ * ramsey/identifier is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with ramsey/identifier. If not, see
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @copyright Copyright (c) Ben Ramsey <ben@ramsey.dev> and Contributors
+ * @license https://opensource.org/license/lgpl-3-0/ GNU Lesser General Public License version 3 or later
  */
 
 declare(strict_types=1);
@@ -17,7 +23,7 @@ declare(strict_types=1);
 namespace Ramsey\Identifier\Uuid;
 
 /**
- * The version number describes how the UUID was generated
+ * The version number describes how the UUID was generated.
  *
  * | **Msb0** | **Msb1** | **Msb2** | **Msb3** | **Version** | **Description**                                             |
  * | :------: | :------: | :------: | :------: | :---------: | :---------------------------------------------------------- |
@@ -38,7 +44,7 @@ namespace Ramsey\Identifier\Uuid;
  * |     1    |    1     |    1     |    0     |     14      | Reserved for future definition                              |
  * |     1    |    1     |    1     |    1     |     15      | Reserved for future definition                              |
  *
- * @link https://www.rfc-editor.org/rfc/rfc9562#section-4.2 RFC 9562, section 4.2. Verson Field
+ * @link https://www.rfc-editor.org/rfc/rfc9562#section-4.2 RFC 9562, section 4.2. Verson Field.
  */
 enum Version: int
 {
@@ -48,7 +54,7 @@ enum Version: int
     case GregorianTime = 0b0001;
 
     /**
-     * Reserved for DCE Security version, with embedded POSIX UUIDs.
+     * Reserved for the DCE Security version, with embedded POSIX UUIDs.
      */
     case DceSecurity = 0b0010;
 
@@ -78,7 +84,7 @@ enum Version: int
     case UnixTime = 0b0111;
 
     /**
-     * Reserved for custom UUID formats specified in RFC 9562.
+     * Reserved for custom format UUID formats specified in RFC 9562.
      */
     case Custom = 0b1000;
 

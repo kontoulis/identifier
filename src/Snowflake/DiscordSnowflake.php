@@ -3,13 +3,19 @@
 /**
  * This file is part of ramsey/identifier
  *
- * ramsey/identifier is open source software: you can distribute
- * it and/or modify it under the terms of the MIT License
- * (the "License"). You may not use this file except in
- * compliance with the License.
+ * ramsey/identifier is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser
+ * General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
  *
- * @copyright Copyright (c) Ben Ramsey <ben@benramsey.com>
- * @license https://opensource.org/licenses/MIT MIT License
+ * ramsey/identifier is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with ramsey/identifier. If not, see
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @copyright Copyright (c) Ben Ramsey <ben@ramsey.dev> and Contributors
+ * @license https://opensource.org/license/lgpl-3-0/ GNU Lesser General Public License version 3 or later
  */
 
 declare(strict_types=1);
@@ -18,22 +24,25 @@ namespace Ramsey\Identifier\Snowflake;
 
 use Ramsey\Identifier\Exception\InvalidArgument;
 use Ramsey\Identifier\Snowflake;
-use Ramsey\Identifier\Snowflake\Utility\Standard;
+use Ramsey\Identifier\Snowflake\Internal\Standard;
 
+/**
+ * A Snowflake identifier for use with the Discord voice, text, and streaming video platform.
+ *
+ * @link https://discord.com Discord.
+ * @link https://discord.com/developers/docs/reference#snowflakes Discord Snowflakes.
+ */
 final readonly class DiscordSnowflake implements Snowflake
 {
     use Standard;
 
     /**
-     * Constructs a Snowflake identifier using Discord's Unix Epoch offset
-     *
-     * @param int | numeric-string $snowflake A representation of the
-     *     Snowflake in integer or numeric string form
+     * @param int<0, max> | numeric-string $snowflake A representation of the Snowflake in integer or numeric string form.
      *
      * @throws InvalidArgument
      */
     public function __construct(int | string $snowflake)
     {
-        $this->snowflake = new GenericSnowflake($snowflake, Epoch::Discord->value);
+        $this->snowflake = new GenericSnowflake($snowflake, Epoch::Discord);
     }
 }

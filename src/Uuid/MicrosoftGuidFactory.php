@@ -3,13 +3,19 @@
 /**
  * This file is part of ramsey/identifier
  *
- * ramsey/identifier is open source software: you can distribute
- * it and/or modify it under the terms of the MIT License
- * (the "License"). You may not use this file except in
- * compliance with the License.
+ * ramsey/identifier is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser
+ * General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
  *
- * @copyright Copyright (c) Ben Ramsey <ben@benramsey.com>
- * @license https://opensource.org/licenses/MIT MIT License
+ * ramsey/identifier is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with ramsey/identifier. If not, see
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @copyright Copyright (c) Ben Ramsey <ben@ramsey.dev> and Contributors
+ * @license https://opensource.org/license/lgpl-3-0/ GNU Lesser General Public License version 3 or later
  */
 
 declare(strict_types=1);
@@ -22,8 +28,8 @@ use Ramsey\Identifier\Exception\BadMethodCall;
 use Ramsey\Identifier\Exception\InvalidArgument;
 use Ramsey\Identifier\Service\BytesGenerator\BytesGenerator;
 use Ramsey\Identifier\Service\BytesGenerator\RandomBytesGenerator;
-use Ramsey\Identifier\Uuid\Utility\Binary;
-use Ramsey\Identifier\Uuid\Utility\StandardFactory;
+use Ramsey\Identifier\Uuid\Internal\Binary;
+use Ramsey\Identifier\Uuid\Internal\StandardFactory;
 use Ramsey\Identifier\UuidFactory as UuidFactoryInterface;
 use Throwable;
 
@@ -34,11 +40,10 @@ use function substr;
 use const STR_PAD_LEFT;
 
 /**
- * A factory for creating Microsoft GUIDs
+ * A factory for creating Microsoft GUIDs.
  *
- * These GUIDs may either be "reserved Microsoft" variant UUIDs or RFC 9562
- * UUIDs using the Microsoft GUID binary encoding. See {@see MicrosoftGuid}
- * for more information on this encoding.
+ * These GUIDs may either be "reserved Microsoft" variant UUIDs or RFC 9562 UUIDs using the Microsoft GUID binary
+ * encoding. See {@see MicrosoftGuid} for more information on this encoding.
  */
 final readonly class MicrosoftGuidFactory implements UuidFactoryInterface
 {
@@ -47,14 +52,12 @@ final readonly class MicrosoftGuidFactory implements UuidFactoryInterface
     private Binary $binary;
 
     /**
-     * Constructs a factory for creating Microsoft GUIDs
+     * Constructs a factory for creating Microsoft GUIDs.
      *
-     * @param BytesGenerator $bytesGenerator A random generator used to
-     *     generate bytes; defaults to {@see RandomBytesGenerator}
+     * @param BytesGenerator $bytesGenerator A random generator used to generate bytes; defaults to {@see RandomBytesGenerator}.
      */
-    public function __construct(
-        private BytesGenerator $bytesGenerator = new RandomBytesGenerator(),
-    ) {
+    public function __construct(private BytesGenerator $bytesGenerator = new RandomBytesGenerator())
+    {
         $this->binary = new Binary();
     }
 
@@ -101,11 +104,7 @@ final readonly class MicrosoftGuidFactory implements UuidFactoryInterface
             /** @var MicrosoftGuid */
             return $this->createFromBytesInternal($this->swapBytes($bytes));
         } catch (Throwable $exception) {
-            throw new InvalidArgument(
-                sprintf('Invalid Microsoft GUID: %s', $identifier),
-                0,
-                $exception,
-            );
+            throw new InvalidArgument(sprintf('Invalid Microsoft GUID: %s', $identifier), 0, $exception);
         }
     }
 
@@ -120,11 +119,7 @@ final readonly class MicrosoftGuidFactory implements UuidFactoryInterface
      */
     public function createFromRfc(UuidV1 | UuidV2 | UuidV3 | UuidV4 | UuidV5 | UuidV6 | UuidV7 | UuidV8 $uuid): MicrosoftGuid // phpcs:ignore
     {
-        $bytes = $this->binary->applyVersionAndVariant(
-            $uuid->toBytes(),
-            $uuid->getVersion(),
-            Variant::Microsoft,
-        );
+        $bytes = $this->binary->applyVersionAndVariant($uuid->toBytes(), $uuid->getVersion(), Variant::Microsoft);
 
         return new MicrosoftGuid($this->swapBytes($bytes));
     }
@@ -151,11 +146,15 @@ final readonly class MicrosoftGuidFactory implements UuidFactoryInterface
         return MicrosoftGuid::class;
     }
 
+    /**
+     * @param non-empty-string $bytes
+     *
+     * @return non-empty-string
+     */
     private function swapBytes(string $bytes): string
     {
         return $bytes[3] . $bytes[2] . $bytes[1] . $bytes[0]
-            . $bytes[5] . $bytes[4]
-            . $bytes[7] . $bytes[6]
+            . $bytes[5] . $bytes[4] . $bytes[7] . $bytes[6]
             . substr($bytes, 8);
     }
 }

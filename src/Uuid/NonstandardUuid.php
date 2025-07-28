@@ -3,13 +3,19 @@
 /**
  * This file is part of ramsey/identifier
  *
- * ramsey/identifier is open source software: you can distribute
- * it and/or modify it under the terms of the MIT License
- * (the "License"). You may not use this file except in
- * compliance with the License.
+ * ramsey/identifier is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser
+ * General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
  *
- * @copyright Copyright (c) Ben Ramsey <ben@benramsey.com>
- * @license https://opensource.org/licenses/MIT MIT License
+ * ramsey/identifier is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with ramsey/identifier. If not, see
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @copyright Copyright (c) Ben Ramsey <ben@ramsey.dev> and Contributors
+ * @license https://opensource.org/license/lgpl-3-0/ GNU Lesser General Public License version 3 or later
  */
 
 declare(strict_types=1);
@@ -20,21 +26,24 @@ use JsonSerializable;
 use Ramsey\Identifier\Exception\BadMethodCall;
 use Ramsey\Identifier\Exception\InvalidArgument;
 use Ramsey\Identifier\Uuid;
-use Ramsey\Identifier\Uuid\Utility\Format;
-use Ramsey\Identifier\Uuid\Utility\Standard;
+use Ramsey\Identifier\Uuid\Internal\Format;
+use Ramsey\Identifier\Uuid\Internal\Standard;
 
 use function assert;
 use function sprintf;
 use function strlen;
 
 /**
- * Nonstandard UUIDs look like UUIDs, but they do not have the variant and
- * version bits set according to RFC 9562
+ * Nonstandard UUIDs look like UUIDs, but they do not have the variant and version bits set according to RFC 9562.
  *
- * It is possible a nonstandard UUID was generated according to RFC 9562 but had
- * its bits rearranged for reasons such as sortability. Without knowing which
- * rearrangement algorithm was used, it is impossible to determine the UUID's
- * original layout, so we treat it as a "nonstandard" UUID.
+ * It is possible a nonstandard UUID was generated according to RFC 9562 but had its bytes rearranged for reasons such
+ * as sortability. For example, before the introduction of UUID versions 6 and 7, it was popular to rearrange the bytes
+ * of UUIDs for sorting purposes. One such arrangement was the "ordered time" UUID, which reordered the timestamp bytes
+ * of a version 1 UUID. Another was the timestamp-first combined (COMB) UUID, which embedded a timestamp at the
+ * beginning of a version 4 UUID.
+ *
+ * Without knowing which rearrangement algorithm was used, it is impossible to determine the UUID's original layout, so
+ * we treat it as a "nonstandard" UUID.
  */
 final readonly class NonstandardUuid implements JsonSerializable, Uuid
 {
@@ -43,6 +52,8 @@ final readonly class NonstandardUuid implements JsonSerializable, Uuid
     private ?Variant $variant;
 
     /**
+     * @param non-empty-string $uuid A representation of the UUID as a string with dashes, hexadecimal, or byte string.
+     *
      * @throws InvalidArgument
      */
     public function __construct(private string $uuid)

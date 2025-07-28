@@ -3,13 +3,19 @@
 /**
  * This file is part of ramsey/identifier
  *
- * ramsey/identifier is open source software: you can distribute
- * it and/or modify it under the terms of the MIT License
- * (the "License"). You may not use this file except in
- * compliance with the License.
+ * ramsey/identifier is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser
+ * General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
  *
- * @copyright Copyright (c) Ben Ramsey <ben@benramsey.com>
- * @license https://opensource.org/licenses/MIT MIT License
+ * ramsey/identifier is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with ramsey/identifier. If not, see
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @copyright Copyright (c) Ben Ramsey <ben@ramsey.dev> and Contributors
+ * @license https://opensource.org/license/lgpl-3-0/ GNU Lesser General Public License version 3 or later
  */
 
 declare(strict_types=1);
@@ -21,51 +27,58 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Psr\Clock\ClockInterface as Clock;
 use Ramsey\Identifier\Exception\InvalidArgument;
+use Ramsey\Identifier\Service\Clock\ClockSequence;
+use Ramsey\Identifier\Service\Clock\MonotonicClockSequence;
 use Ramsey\Identifier\Service\Clock\Precision;
-use Ramsey\Identifier\Service\Clock\Sequence;
-use Ramsey\Identifier\Service\Clock\StatefulSequence;
 use Ramsey\Identifier\Service\Clock\SystemClock;
 use Ramsey\Identifier\Snowflake;
-use Ramsey\Identifier\Snowflake\Utility\StandardFactory;
+use Ramsey\Identifier\Snowflake\Internal\StandardFactory;
 use Ramsey\Identifier\SnowflakeFactory;
 
+use function intdiv;
 use function sprintf;
 use function substr;
 
 /**
- * A factory that generates Snowflakes
+ * A factory that generates generic Snowflakes identifiers that may use any epoch offset.
  *
- * @link https://en.wikipedia.org/wiki/Snowflake_ID Snowflakes
+ * @see GenericSnowflake
  */
 final class GenericSnowflakeFactory implements SnowflakeFactory
 {
     use StandardFactory;
+
+    private const TIMESTAMP_BIT_SHIFTS = 22;
+
+    /**
+     * We increase this value each time our clock sequence rolls over and add the value to the milliseconds to ensure
+     * the values are monotonically increasing.
+     */
+    private int $clockSequenceCounter = 0;
 
     /**
      * For performance, we'll prepare the node ID bits and store for later use.
      */
     private readonly int $nodeIdShifted;
 
+    private readonly int $epochOffset;
+
     /**
-     * Constructs a factory for creating Snowflakes
-     *
-     * @param int<0, 1023> $nodeId A 10-bit machine identifier to use when
-     *     creating Snowflakes
-     * @param int $epochOffset The offset from the Unix Epoch in milliseconds to
-     *     use when creating Snowflakes
-     * @param Clock $clock A clock used to provide a date-time instance;
-     *     defaults to {@see SystemClock}
-     * @param Sequence $sequence A sequence that provides a clock sequence value
-     *     to prevent collisions; defaults to {@see StatefulSequence} with
-     *     millisecond precision
+     * @param int $nodeId A node identifier to use when creating Snowflakes; we take the modulo of this integer
+     *     divided by 1024, giving it an effective range of 0-1023 (i.e., 10 bits).
+     * @param Epoch | int $epochOffset The offset from the Unix Epoch in milliseconds to use when creating Snowflake identifiers.
+     * @param Clock $clock A clock used to provide a date-time instance; defaults to {@see SystemClock}
+     * @param ClockSequence $sequence A clock sequence value to prevent collisions; defaults to {@see MonotonicClockSequence}
      */
     public function __construct(
         private readonly int $nodeId,
-        private readonly int $epochOffset,
+        Epoch | int $epochOffset,
         private readonly Clock $clock = new SystemClock(),
-        private readonly Sequence $sequence = new StatefulSequence(precision: Precision::Millisecond),
+        private readonly ClockSequence $sequence = new MonotonicClockSequence(),
     ) {
-        $this->nodeIdShifted = ($this->nodeId & 0x03ff) << 12;
+        // Use modular arithmetic to roll over the node value at mod 0x0400 (1024).
+        $this->nodeIdShifted = $this->nodeId % 0x0400 << 12;
+        $this->epochOffset = $epochOffset instanceof Epoch ? $epochOffset->value : $epochOffset;
     }
 
     /**
@@ -77,6 +90,8 @@ final class GenericSnowflakeFactory implements SnowflakeFactory
     }
 
     /**
+     * @param non-empty-string $identifier
+     *
      * @throws InvalidArgument
      */
     public function createFromBytes(string $identifier): Snowflake
@@ -89,7 +104,7 @@ final class GenericSnowflakeFactory implements SnowflakeFactory
      */
     public function createFromDateTime(DateTimeInterface $dateTime): Snowflake
     {
-        $milliseconds = (int) $dateTime->format('Uv') - $this->epochOffset;
+        $milliseconds = (int) $dateTime->format(Precision::Millisecond->value) - $this->epochOffset;
 
         if ($milliseconds < 0) {
             throw new InvalidArgument(sprintf(
@@ -98,16 +113,36 @@ final class GenericSnowflakeFactory implements SnowflakeFactory
             ));
         }
 
-        $sequence = $this->sequence->value($this->nodeId, $dateTime) & 0x0fff;
+        if ($milliseconds > 0x3ffffffffff) {
+            $maxMilliseconds = 0x3ffffffffff + $this->epochOffset;
+            $maxDateTime = new DateTimeImmutable('@' . intdiv($maxMilliseconds, 1000) . '.' . $maxMilliseconds % 1000);
 
-        $millisecondsShifted = $milliseconds << 22;
+            throw new InvalidArgument(sprintf(
+                'Snowflakes with epoch offset %d cannot have a date-time greater than %s',
+                $this->epochOffset,
+                $maxDateTime->format(Epoch::ISO_EXTENDED_FORMAT),
+            ));
+        }
+
+        // Use modular arithmetic to roll over the sequence value at mod 0x1000 (4096).
+        $sequence = $this->sequence->next((string) $this->nodeId, $dateTime) % 0x1000;
+
+        // Increase the milliseconds by the current value of the clock sequence counter.
+        $milliseconds += $this->clockSequenceCounter;
+        $millisecondsShifted = $milliseconds << self::TIMESTAMP_BIT_SHIFTS;
+
+        // If the sequence is currently 0x0fff (4095), bump the clock sequence counter, since we're rolling over.
+        if ($sequence === 0x0fff) {
+            $this->clockSequenceCounter++;
+        }
 
         if ($millisecondsShifted > $milliseconds) {
+            /** @var int<0, max> $identifier */
             $identifier = $millisecondsShifted | $this->nodeIdShifted | $sequence;
         } else {
             /** @var numeric-string $identifier */
             $identifier = (string) BigInteger::of($milliseconds)
-                ->shiftedLeft(22)
+                ->shiftedLeft(self::TIMESTAMP_BIT_SHIFTS)
                 ->or($this->nodeIdShifted)
                 ->or($sequence);
         }
@@ -124,6 +159,8 @@ final class GenericSnowflakeFactory implements SnowflakeFactory
     }
 
     /**
+     * @param int<0, max> | numeric-string $identifier
+     *
      * @throws InvalidArgument
      */
     public function createFromInteger(int | string $identifier): Snowflake
@@ -132,14 +169,13 @@ final class GenericSnowflakeFactory implements SnowflakeFactory
     }
 
     /**
+     * @param numeric-string $identifier
+     *
      * @throws InvalidArgument
      */
     public function createFromString(string $identifier): Snowflake
     {
-        /** @var numeric-string $value */
-        $value = $identifier;
-
-        return new GenericSnowflake($value, $this->epochOffset);
+        return new GenericSnowflake($identifier, $this->epochOffset);
     }
 
     private function getEpochDate(): DateTimeImmutable

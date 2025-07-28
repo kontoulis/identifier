@@ -3,13 +3,19 @@
 /**
  * This file is part of ramsey/identifier
  *
- * ramsey/identifier is open source software: you can distribute
- * it and/or modify it under the terms of the MIT License
- * (the "License"). You may not use this file except in
- * compliance with the License.
+ * ramsey/identifier is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser
+ * General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
  *
- * @copyright Copyright (c) Ben Ramsey <ben@benramsey.com>
- * @license https://opensource.org/licenses/MIT MIT License
+ * ramsey/identifier is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with ramsey/identifier. If not, see
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @copyright Copyright (c) Ben Ramsey <ben@ramsey.dev> and Contributors
+ * @license https://opensource.org/license/lgpl-3-0/ GNU Lesser General Public License version 3 or later
  */
 
 declare(strict_types=1);
@@ -24,7 +30,7 @@ use Identifier\StringIdentifierFactory;
 use Ramsey\Identifier\Exception\InvalidArgument;
 
 /**
- * A factory for creating ULIDs
+ * A factory for creating ULIDs.
  */
 interface UlidFactory extends
     BytesIdentifierFactory,
@@ -39,9 +45,9 @@ interface UlidFactory extends
     public function createFromDateTime(DateTimeInterface $dateTime): Ulid;
 
     /**
-     * Creates a new instance of a ULID from the given hexadecimal representation
+     * Creates a new instance of a ULID from the given hexadecimal representation.
      *
-     * @throws InvalidArgument MUST throw if the identifier is not a legal value
+     * @throws InvalidArgument MUST throw if the identifier is not a legal value.
      */
     public function createFromHexadecimal(string $identifier): Ulid;
 

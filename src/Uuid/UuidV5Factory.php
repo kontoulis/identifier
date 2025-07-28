@@ -3,13 +3,19 @@
 /**
  * This file is part of ramsey/identifier
  *
- * ramsey/identifier is open source software: you can distribute
- * it and/or modify it under the terms of the MIT License
- * (the "License"). You may not use this file except in
- * compliance with the License.
+ * ramsey/identifier is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser
+ * General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
  *
- * @copyright Copyright (c) Ben Ramsey <ben@benramsey.com>
- * @license https://opensource.org/licenses/MIT MIT License
+ * ramsey/identifier is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+ * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with ramsey/identifier. If not, see
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @copyright Copyright (c) Ben Ramsey <ben@ramsey.dev> and Contributors
+ * @license https://opensource.org/license/lgpl-3-0/ GNU Lesser General Public License version 3 or later
  */
 
 declare(strict_types=1);
@@ -18,15 +24,15 @@ namespace Ramsey\Identifier\Uuid;
 
 use Ramsey\Identifier\Exception\InvalidArgument;
 use Ramsey\Identifier\Uuid;
-use Ramsey\Identifier\Uuid\Utility\Binary;
-use Ramsey\Identifier\Uuid\Utility\StandardFactory;
+use Ramsey\Identifier\Uuid\Internal\Binary;
+use Ramsey\Identifier\Uuid\Internal\StandardFactory;
 use Ramsey\Identifier\UuidFactory as UuidFactoryInterface;
 
 use function hash;
 use function substr;
 
 /**
- * A factory for creating version 5, name-based (SHA-1) UUIDs
+ * A factory for creating version 5, name-based (SHA-1) UUIDs.
  */
 final class UuidV5Factory implements UuidFactoryInterface
 {
@@ -45,11 +51,11 @@ final class UuidV5Factory implements UuidFactoryInterface
     public function create(?Uuid $namespace = null, ?string $name = null): UuidV5
     {
         if ($namespace === null) {
-            throw new InvalidArgument('$namespace cannot be null when creating version 5 UUIDs');
+            throw new InvalidArgument('When creating version 5 UUIDs, the namespace cannot be null');
         }
 
         if ($name === null) {
-            throw new InvalidArgument('$name cannot be null when creating version 5 UUIDs');
+            throw new InvalidArgument('When creating version 5 UUIDs, the name cannot be null');
         }
 
         /** @var non-empty-string $bytes */

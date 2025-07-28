@@ -78,7 +78,7 @@ class UuidV7FactoryTest extends TestCase
     public function testCreateFromBytesThrowsException(): void
     {
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('Identifier must be a 16-byte string');
+        $this->expectExceptionMessage('The identifier must be a 16-byte octet string');
 
         $this->factory->createFromBytes("\xff\xff\xff\xff\xff\xff\x7f\xff\x8f\xff\xff\xff\xff\xff\xff");
     }
@@ -189,7 +189,7 @@ class UuidV7FactoryTest extends TestCase
     public function testCreateFromStringThrowsExceptionForWrongLength(): void
     {
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('Identifier must be a UUID in string standard representation');
+        $this->expectExceptionMessage('The identifier must be a UUID in standard string representation');
 
         $this->factory->createFromString('ffffffff-ffff-7fff-8fff-fffffffffffff');
     }
@@ -197,7 +197,7 @@ class UuidV7FactoryTest extends TestCase
     public function testCreateFromStringThrowsExceptionForWrongFormat(): void
     {
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('Identifier must be a UUID in string standard representation');
+        $this->expectExceptionMessage('The identifier must be a UUID in standard string representation');
 
         $this->factory->createFromString('ffff-ffffffff-7fff-8fff-ffffffffffff');
     }
@@ -206,7 +206,8 @@ class UuidV7FactoryTest extends TestCase
     {
         $previous = $this->factory->create();
 
-        for ($i = 0; $i < 25; $i++) {
+        // Create a bunch of UUIDs and assert that each one is greater than the last.
+        for ($i = 0; $i < 40_000; $i++) {
             $uuid = $this->factory->create();
             $now = gmdate('Y-m-d H:i');
             $this->assertGreaterThan(0, $uuid->compareTo($previous));
@@ -221,7 +222,8 @@ class UuidV7FactoryTest extends TestCase
 
         $previous = $this->factory->create($dateTime);
 
-        for ($i = 0; $i < 25; $i++) {
+        // Create a bunch of UUIDs and assert that each one is greater than the last.
+        for ($i = 0; $i < 40_000; $i++) {
             $uuid = $this->factory->create($dateTime);
             $this->assertGreaterThan(0, $uuid->compareTo($previous));
             $this->assertSame($dateTime->format('Y-m-d H:i'), $uuid->getDateTime()->format('Y-m-d H:i'));
@@ -240,7 +242,7 @@ class UuidV7FactoryTest extends TestCase
     public function testCreateFromHexadecimalThrowsExceptionForInvalidHexadecimal(string $hexadecimal): void
     {
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('Identifier must be a 32-character hexadecimal string');
+        $this->expectExceptionMessage('The identifier must be a 32-character hexadecimal string');
 
         $this->factory->createFromHexadecimal($hexadecimal);
     }

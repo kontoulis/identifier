@@ -87,7 +87,7 @@ class UlidFactoryTest extends TestCase
     public function testCreateFromBytesThrowsException(): void
     {
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('Identifier must be a 16-byte string');
+        $this->expectExceptionMessage('The identifier must be a 16-byte octet string');
 
         $this->factory->createFromBytes("\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff");
     }
@@ -119,7 +119,7 @@ class UlidFactoryTest extends TestCase
     public function testCreateFromHexadecimalThrowsExceptionForWrongLength(): void
     {
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('Identifier must be a 32-character hexadecimal string');
+        $this->expectExceptionMessage('The identifier must be a 32-character hexadecimal string');
 
         $this->factory->createFromHexadecimal('fffffffffffffffffffffffffffffffff');
     }
@@ -127,7 +127,7 @@ class UlidFactoryTest extends TestCase
     public function testCreateFromHexadecimalThrowsExceptionForNonHexadecimal(): void
     {
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('Identifier must be a 32-character hexadecimal string');
+        $this->expectExceptionMessage('The identifier must be a 32-character hexadecimal string');
 
         $this->factory->createFromHexadecimal('fffffffffffffffffffffffffffffffg');
     }
@@ -260,7 +260,7 @@ class UlidFactoryTest extends TestCase
     public function testCreateFromStringThrowsExceptionForWrongLength(): void
     {
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('Identifier must be a valid ULID string representation');
+        $this->expectExceptionMessage('The identifier must be a valid ULID string representation');
 
         $this->factory->createFromString('01BX5ZZKBKACTAV9WEVGEMMVR');
     }
@@ -268,7 +268,7 @@ class UlidFactoryTest extends TestCase
     public function testCreateFromStringThrowsExceptionForWrongFormat(): void
     {
         $this->expectException(InvalidArgument::class);
-        $this->expectExceptionMessage('Identifier must be a valid ULID string representation');
+        $this->expectExceptionMessage('The identifier must be a valid ULID string representation');
 
         $this->factory->createFromString('ffffffff-ffff-7fff-8fff-fffffffffffff');
     }
@@ -277,7 +277,8 @@ class UlidFactoryTest extends TestCase
     {
         $previous = $this->factory->create();
 
-        for ($i = 0; $i < 25; $i++) {
+        // Create a ton of ULIDs and assert that each one is greater than the last.
+        for ($i = 0; $i < 40_000; $i++) {
             $ulid = $this->factory->create();
             $now = gmdate('Y-m-d H:i');
             $this->assertTrue($ulid->compareTo($previous) > 0);
@@ -292,7 +293,8 @@ class UlidFactoryTest extends TestCase
 
         $previous = $this->factory->createFromDateTime($dateTime);
 
-        for ($i = 0; $i < 25; $i++) {
+        // Create a ton of ULIDs and assert that each one is greater than the last.
+        for ($i = 0; $i < 40_000; $i++) {
             $ulid = $this->factory->createFromDateTime($dateTime);
             $this->assertTrue($ulid->compareTo($previous) > 0);
             $this->assertSame($dateTime->format('Y-m-d H:i'), $ulid->getDateTime()->format('Y-m-d H:i'));
@@ -355,6 +357,9 @@ class UlidFactoryTest extends TestCase
         $this->factory->createFromDateTime($dateTime);
     }
 
+    /**
+     * @param non-empty-string $bytes
+     */
     #[DataProvider('createFromUuidProvider')]
     public function testCreateFromUuid(string $bytes): void
     {
@@ -368,7 +373,7 @@ class UlidFactoryTest extends TestCase
     }
 
     /**
-     * @return list<array{bytes: string}>
+     * @return list<array{bytes: non-empty-string}>
      */
     public static function createFromUuidProvider(): array
     {
